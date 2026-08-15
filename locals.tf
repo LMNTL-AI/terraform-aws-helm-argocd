@@ -4,6 +4,7 @@ locals {
     app_health_degraded     = coalesce(var.notification_templates.app_health_degraded, local.notification_sample_templates.app_health_degraded)
     app_sync_failed         = coalesce(var.notification_templates.app_sync_failed, local.notification_sample_templates.app_sync_failed)
     app_sync_running        = coalesce(var.notification_templates.app_sync_running, local.notification_sample_templates.app_sync_running)
+    app_sync_stuck          = coalesce(var.notification_templates.app_sync_stuck, local.notification_sample_templates.app_sync_stuck)
     app_sync_status_unknown = coalesce(var.notification_templates.app_sync_status_unknown, local.notification_sample_templates.app_sync_status_unknown)
     app_sync_succeeded      = coalesce(var.notification_templates.app_sync_succeeded, local.notification_sample_templates.app_sync_succeeded)
     app_out_of_sync         = coalesce(var.notification_templates.app_out_of_sync, local.notification_sample_templates.app_out_of_sync)
@@ -108,6 +109,34 @@ EOT
     {
       "title": "Sync Status",
       "value": "{{.app.status.sync.status}}",
+      "short": true
+    },
+    {
+      "title": " Repository",
+      "value": "<{{.app.spec.source.repoURL}}|View Repo>",
+      "short": true
+    }
+    {{range $index, $c := .app.status.conditions}}
+    {{if not $index}},{{end}}
+    {{if $index}},{{end}}
+    {
+      "title": "{{$c.type}}",
+      "value": "{{$c.message}}",
+      "short": true
+    }
+    {{end}}
+  ]
+}]
+EOT
+    app_sync_stuck          = <<EOT
+[{
+  "title": ":rotating_light: Sync Stuck Running: {{ .app.metadata.name}}",
+  "title_link": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}",
+  "color": "#E96D76",
+  "fields": [
+    {
+      "title": "Operation Started",
+      "value": "{{.app.status.operationState.startedAt}}",
       "short": true
     },
     {
@@ -365,6 +394,10 @@ notifications:
       slack:
         attachments: |-
           ${indent(10, local.notification_templates.app_sync_running)}
+    template.app-sync-stuck: |
+      slack:
+        attachments: |-
+          ${indent(10, local.notification_templates.app_sync_stuck)}
     template.app-sync-status-unknown: |
       slack:
         attachments: |-
@@ -400,6 +433,12 @@ notifications:
         send:
         - app-sync-running
         when: app.status.operationState.phase in ['Running']
+    trigger.on-sync-stuck: |
+      - description: Application sync has been Running for over 15 minutes — likely wedged (e.g. a pre-install hook in ImagePullBackOff)
+        oncePer: app.status.operationState.startedAt
+        send:
+        - app-sync-stuck
+        when: app.status.operationState.phase in ['Running'] and time.Now().Sub(time.Parse(app.status.operationState.startedAt)).Minutes() >= 15
     trigger.on-sync-status-unknown: |
       - description: Application status is 'Unknown'
         send:

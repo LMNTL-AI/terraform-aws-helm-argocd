@@ -222,6 +222,7 @@ variable "notification_templates" {
     app_health_degraded     = optional(string, null)
     app_sync_failed         = optional(string, null)
     app_sync_running        = optional(string, null)
+    app_sync_stuck          = optional(string, null)
     app_sync_status_unknown = optional(string, null)
     app_sync_succeeded      = optional(string, null)
     app_out_of_sync         = optional(string, null)
