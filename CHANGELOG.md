@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased (LMNTL-AI fork)
+
+### Security
+
+* The dex GitHub connector's `clientSecret` is no longer rendered inline into
+  `argocd-cm` `dex.config`. It is written to a new Secret, `argocd-dex-github`
+  (label `app.kubernetes.io/part-of=argocd`, key `dex.github.clientSecret`),
+  and `dex.config` references it as `$argocd-dex-github:dex.github.clientSecret`.
+  Inputs are unchanged. Inline, the value was readable by anyone with ConfigMap
+  read in the namespace, and it travelled in the Helm values, which
+  `helm_release` keeps in `metadata` and a plan prints from state.
+  LMNTL-AI/infra-terraform#137.
+
 ## [1.4.2]() (2026-05-16)
 
 ### Fix Bugs

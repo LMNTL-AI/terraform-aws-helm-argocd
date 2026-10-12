@@ -49,6 +49,29 @@ resource "kubernetes_secret" "repository" {
   depends_on = [helm_release.this]
 }
 
+# The dex GitHub connector's client secret lives in its own Secret, not inline in
+# argocd-cm. Inline, it was readable by anyone who can read ConfigMaps in this
+# namespace, and it rode the Helm values into helm_release metadata, which a
+# Terraform plan prints from state. dex.config references it as
+# $argocd-dex-github:dex.github.clientSecret; Argo CD resolves that only for a
+# Secret labelled app.kubernetes.io/part-of=argocd.
+resource "kubernetes_secret" "oidc_github" {
+  metadata {
+    namespace = var.argocd_namespace
+    name      = "argocd-dex-github"
+
+    labels = {
+      "app.kubernetes.io/part-of" = "argocd"
+    }
+  }
+
+  data = {
+    "dex.github.clientSecret" = var.oidc_github_client_secret
+  }
+
+  depends_on = [helm_release.this]
+}
+
 resource "kubernetes_secret" "external_github_oauth" {
   for_each = toset(keys(var.external_github_oauth_creds))
   metadata {

@@ -305,7 +305,7 @@ configs:
           name: GitHub
           config:
             clientID: ${var.oidc_github_client_id}
-            clientSecret: ${var.oidc_github_client_secret}
+            clientSecret: $argocd-dex-github:dex.github.clientSecret
             orgs:
               - name: ${var.oidc_github_organization}
         %{for key, creds in var.external_github_oauth_creds}
